@@ -3,7 +3,7 @@
 
 using namespace std;
 
-Point::Point(long x_, long y_) {
+Point::Point(number x_, number y_) {
 	x = x_; y = y_;
 }
 
@@ -24,20 +24,20 @@ Point::Point(const Point &p) {
 	x = p.x; y = p.y;	
 }
 
-Point Point::operator=(const Point &p) {
-	return *new Point(p.x, p.y);	
+Point& Point::operator=(const Point &p) {
+	x = p.x, y = p.y; return *this;
 }
 
 EllipticCurvePoint SimpleEllipticCurve::add (EllipticCurvePoint &P, EllipticCurvePoint &Q) {
-	long x,y;
+	number x,y,s;
 	
 	if (P.x != Q.x) {
-		float s = 1.0*(P.y - Q.y) / (P.x - Q.x);
+		s = 1.0*(P.y - Q.y) / (P.x - Q.x);
 		x = s*s - (P.x + Q.x);
 		y = s*(P.x - x) - P.y;
 	}
 	else if (P == Q) { //doubling
-		float s = (3*P.x*P.x + a) / (2*P.y);
+		s = (3*P.x*P.x + a) / (2*P.y);
 		x = s*s - 2*P.x;
 		y = s*(P.x - x) - P.y;	
 	}
@@ -47,31 +47,30 @@ EllipticCurvePoint SimpleEllipticCurve::add (EllipticCurvePoint &P, EllipticCurv
 	return EllipticCurvePoint(x,y,this);
 } 
 
-EllipticCurvePoint SimpleEllipticCurve::operator() (long x) {
+EllipticCurvePoint SimpleEllipticCurve::operator() (number x) {
 	return *new EllipticCurvePoint(x,x*x*x + a*x +b,this);
 }
 
 //Some number theory
-long EllipticCurve::gcd(long a, long b) {
+number EllipticCurve::gcd(number a, number b) {
 	return a == 0 ? b : gcd(b, b % a);	
 }
 
-long EllipticCurve::multiplicativeInverse(long x, long p) {
+number EllipticCurve::multiplicativeInverse(number x, number p) {
 	//assume p is prime
-	long g = gcd(x,p);
-	if (g != 1) return -1;
+	//number g = gcd(x,p);
 	return fastPowMod(x, p-2, p);
 }
 
-long EllipticCurve::fastPowMod(long a, long n, long p) {
+number EllipticCurve::fastPowMod(number a, number n, number p) {
 	if (n == 0) return 1;
 	else if (n == 1) return a;
-	long x = fastPowMod(a, n / 2,p) % p;
+	number x = fastPowMod(a, n / 2,p) % p;
 	return n % 2 == 0 ? x*x % p : a*x*x % p;	
 }
 
 EllipticCurvePoint EllipticCurve::add (EllipticCurvePoint &P, EllipticCurvePoint &Q) {
-	long x,y,s;
+	number x,y,s;
 	if (P.isInfinity()) return Q;
 	if (Q.isInfinity()) return P;
 	if (P.x != Q.x) {
@@ -87,31 +86,46 @@ EllipticCurvePoint EllipticCurve::add (EllipticCurvePoint &P, EllipticCurvePoint
 	else if (P.x == Q.x) {
 		return InfinityPoint::instance();
 	}
+	if (x < 0) x += p;	
+	if (y < 0) y += p;
+	
+	
 	return EllipticCurvePoint(x,y,this);
 } 
 
-EllipticCurvePoint EllipticCurve::operator() (long x) {
+EllipticCurvePoint EllipticCurve::operator() (number x) {
 	return *new EllipticCurvePoint(x % p,(x*x*x + a*x + b) % p, this);
 }
 
-EllipticCurvePoint EllipticCurvePoint::operator+(EllipticCurvePoint &other) {
+EllipticCurvePoint EllipticCurvePoint::operator+(EllipticCurvePoint other) {
 	return E->add(*this,other);
 }
 
-EllipticCurvePoint EllipticCurvePoint::operator*(long m) {
-	EllipticCurvePoint Q(x,y,E);
-	EllipticCurvePoint R(Q);
-	
-	while (m / 2 != 0) {
-		Q = Q + Q;	
-		if (m % 2 == 1) Q = Q + R;
-		m /= 2;
-	}
-	return Q;
+EllipticCurvePoint& EllipticCurvePoint::operator+= (EllipticCurvePoint other) {
+	*this = *new EllipticCurvePoint(E->add(*this, other));
+	return *this;	
 }
 
-int main(void) {
-	Point a(10,10);
-	Point b(20,20);
-	cout << a + b << endl;
+EllipticCurvePoint& EllipticCurvePoint::operator=(const EllipticCurvePoint &other) {
+	x = other.x;
+	y = other.y;
+	E = other.E;
+	return *this;	
 }
+
+EllipticCurvePoint EllipticCurvePoint::operator*(number m) {
+	EllipticCurvePoint res(x,y,E); //holds our result
+	EllipticCurvePoint X(res); // point to double
+	m--;
+	
+	while (m > 0) {
+		if (m & 1) res = res + X; 	
+		X = X + X;
+		m /= 2;
+	}
+	
+	return res;
+}
+
+bool EllipticCurvePoint::operator==(const EllipticCurvePoint &other) {return x == other.x && y == other.y;}
+

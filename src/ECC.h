@@ -1,5 +1,7 @@
 //Headers
 #include <iostream>
+#include <cassert>
+typedef long number;
 
 #ifndef ELLIPTIC_CURVE_CRYPTOGRAPHY_H
 	#define ELLIPTIC_CURVE_CRYPTOGRAPHY_H
@@ -13,36 +15,42 @@ class EllipticCurvePoint;
 
 class SimpleEllipticCurve { //defines simple EC
 	protected:
-		long a,b; //parameters
+		number a,b; //parameters
 		EllipticCurvePoint *G; //generator point
-		long n; //order
+		number n; //order
+		number h; //cofactor
 	private:
 		virtual EllipticCurvePoint add (EllipticCurvePoint &P, EllipticCurvePoint &Q);
 	public:
-		SimpleEllipticCurve(long a_, long b_) : a(a_), b(b_) {};
-		virtual EllipticCurvePoint operator() (long x);
+		SimpleEllipticCurve(number a_, number b_, EllipticCurvePoint *G_, number n_, number h_) : a(a_), b(b_), G(G_), n(n_), h(h_) { //TODO check if on ECC
+			assert(4*a*a*a + 27*b*b != 0);
+		};
+		virtual EllipticCurvePoint operator() (number x);
 		friend class EllipticCurvePoint;
 };
 
 class EllipticCurve : public SimpleEllipticCurve { //Elliptic Curve over Z/pZ
+	public:
+		EllipticCurve(number a_, number b_, number p_, EllipticCurvePoint *G_, number n_, number h_) : SimpleEllipticCurve(a_,b_,G_,n_,h_), p(p_) {};
+		EllipticCurvePoint operator() (number x);
 	protected:
-		long p;
+		number p;
 	private:
 		EllipticCurvePoint add (EllipticCurvePoint &P, EllipticCurvePoint &Q);
-		static long multiplicativeInverse(long x, long p);
-		static long gcd(long a, long b);
-		static long fastPowMod(long a, long b, long n);	
-		EllipticCurvePoint operator() (long x);
+		static number multiplicativeInverse(number x, number p);
+		static number gcd(number a, number b);
+		static number fastPowMod(number a, number b, number n);	
+		
 };
 
 
 class Point {
 	protected:
-		long x,y;
+		number x,y;
 	public:
-		Point(long x_, long y_);
+		Point(number x_, number y_);
 		Point(const Point& p);
-		Point operator=(const Point &p);
+		virtual Point& operator=(const Point &p);
 		virtual Point operator+ (Point &other);
 		virtual bool operator== (Point &other);
 		friend std::ostream& operator << (std::ostream &out, const Point &p);
@@ -52,9 +60,15 @@ class EllipticCurvePoint : public Point {
 	protected:
 		SimpleEllipticCurve *E;
 	public:
-		EllipticCurvePoint (long x_, long y_, SimpleEllipticCurve *E_) : Point(x_, y_), E(E_) {};
-		EllipticCurvePoint operator+(EllipticCurvePoint &other);
-		EllipticCurvePoint operator* (long m);
+		EllipticCurvePoint (number x_, number y_, SimpleEllipticCurve *E_) : Point(x_, y_), E(E_) {};
+		EllipticCurvePoint operator+(EllipticCurvePoint other);
+		EllipticCurvePoint operator* (number m);
+		EllipticCurvePoint& operator+=(EllipticCurvePoint other);
+		EllipticCurvePoint& operator=(const EllipticCurvePoint &other);
+		bool operator== (const EllipticCurvePoint &other);
+		void setCurve(SimpleEllipticCurve *e) {
+			E = e;
+		}	
 		virtual bool isInfinity() { return false; }
 		friend class SimpleEllipticCurve;
 		friend class EllipticCurve;
