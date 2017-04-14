@@ -101,7 +101,12 @@ EllipticCurvePoint EllipticCurvePoint::operator+(EllipticCurvePoint &other) {
 EllipticCurvePoint EllipticCurvePoint::operator*(long m) {
 	EllipticCurvePoint Q(x,y,E);
 	EllipticCurvePoint R(Q);
-	for (int i = 1; i <= m; i++) Q = Q + R;	
+	
+	while (m / 2 != 0) {
+		Q = Q + Q;	
+		if (m % 2 == 1) Q = Q + R;
+		m /= 2;
+	}
 	return Q;
 }
 
