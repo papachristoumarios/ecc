@@ -1,6 +1,10 @@
 //Headers
 #include <iostream>
 #include <cassert>
+#include <ctime>
+#include <cstdlib>
+#include <random>
+#include <map>
 typedef long number;
 
 #ifndef ELLIPTIC_CURVE_CRYPTOGRAPHY_H
@@ -24,6 +28,7 @@ class SimpleEllipticCurve { //defines simple EC
 	public:
 		SimpleEllipticCurve(number a_, number b_, EllipticCurvePoint *G_, number n_, number h_) : a(a_), b(b_), G(G_), n(n_), h(h_) { //TODO check if on ECC
 			assert(4*a*a*a + 27*b*b != 0);
+			//assert((*this)(G->x) == *G)
 		};
 		virtual EllipticCurvePoint operator() (number x);
 		friend class EllipticCurvePoint;
@@ -33,10 +38,12 @@ class EllipticCurve : public SimpleEllipticCurve { //Elliptic Curve over Z/pZ
 	public:
 		EllipticCurve(number a_, number b_, number p_, EllipticCurvePoint *G_, number n_, number h_) : SimpleEllipticCurve(a_,b_,G_,n_,h_), p(p_) {};
 		EllipticCurvePoint operator() (number x);
+		number order() {return SimpleEllipticCurve::n;}
 	protected:
 		number p;
 	private:
 		EllipticCurvePoint add (EllipticCurvePoint &P, EllipticCurvePoint &Q);
+	public:	
 		static number multiplicativeInverse(number x, number p);
 		static number gcd(number a, number b);
 		static number fastPowMod(number a, number b, number n);	
@@ -54,6 +61,8 @@ class Point {
 		virtual Point operator+ (Point &other);
 		virtual bool operator== (Point &other);
 		friend std::ostream& operator << (std::ostream &out, const Point &p);
+		virtual number getX(){return x;}
+		virtual number getY(){return y;}
 };
 
 class EllipticCurvePoint : public Point {
@@ -88,3 +97,29 @@ class InfinityPoint : public EllipticCurvePoint {
 	private:
 		InfinityPoint() : EllipticCurvePoint(0,0,NULL) {};
 };
+
+class SharedKey {
+	public:
+		EllipticCurve *curve;
+		EllipticCurvePoint *generator_point;
+		SharedKey(number, number, number, EllipticCurvePoint*, number, number);
+		EllipticCurvePoint* getGeneratorPoint();
+		void generatePair (number&, EllipticCurvePoint&); 
+		number random();
+	private:
+};
+
+class ECDH {
+	public:
+		SharedKey *sh_key;
+		ECDH (SharedKey *);
+		EllipticCurvePoint encrypt ();
+		EllipticCurvePoint decrypt (ECDH&); 
+		std::pair<number,number> signECDSA(number z); //z to string -> hash
+		static number multiplicativeInverse(number a, number n, number, number);
+		int verify(std::pair<number,number>, number);
+	private:
+		number pr_key;
+		EllipticCurvePoint pub_key = *new EllipticCurvePoint(0,0,NULL);
+};
+

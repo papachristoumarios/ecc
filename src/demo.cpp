@@ -10,9 +10,10 @@ int main(void) {
 	EllipticCurve *E = new EllipticCurve(2,2,17,G,17,1);
 	G->setCurve(E);
 	cout << "Generator Point: " << *G << endl;
-	EllipticCurvePoint P(*G);
-	EllipticCurvePoint Q(*G);
-	
-	if (P*(a*b) == Q*(b*a)) cout << "Voila!" << endl;
-		
+EllipticCurvePoint R = (*G)*5;
+EllipticCurvePoint P = (*G)*7;
+EllipticCurvePoint Q = P + R;
+cout << R << endl;
+cout << P << endl;
+cout << Q << endl;		
 }
